@@ -7,11 +7,14 @@ from .manifest import TraceManifest
 from .store import ArtifactStore
 from .export import export_bundle, export_jsonl
 from .integration import trace_component_event, trace_handoff, trace_model_use
+from .context import traced_run, trace_function
+from .query import TraceQuery
 
 __all__ = [
     "ArtifactKind", "ArtifactRef", "AuditIssue", "LineageEdge", "RunRecord", "TraceEvent", "TraceStatus",
     "TraceRecorder", "LineageGraph", "AuditReport", "verify_recorder", "verify_trace_dir", "TraceManifest",
     "ArtifactStore", "export_bundle", "export_jsonl", "trace_component_event", "trace_handoff", "trace_model_use",
+    "traced_run", "trace_function", "TraceQuery",
 ]
 
 __version__ = "0.1.0"

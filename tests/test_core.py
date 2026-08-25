@@ -1,6 +1,6 @@
 from pathlib import Path
 import json
-from cardi_trace import ArtifactStore, TraceRecorder, TraceStatus, verify_recorder, LineageGraph
+from cardi_trace import ArtifactStore, TraceRecorder, TraceStatus, TraceQuery, traced_run, verify_recorder, LineageGraph
 from cardi_trace.hashing import sha256_payload
 
 
@@ -16,8 +16,22 @@ def test_trace_lifecycle(tmp_path: Path):
     r.attach_input(run.run_id, inp); r.attach_output(run.run_id, out)
     r.finish_run(run.run_id, status=TraceStatus.SUCCEEDED)
     report = verify_recorder(r)
-    assert report.valid
-    assert report.events_checked == 6
+    assert report.valid and report.events_checked == 6
+    assert TraceQuery(r).outputs_of(run.run_id)[0].artifact_id == out.artifact_id
+
+
+def test_context_success_and_failure(tmp_path: Path):
+    r = TraceRecorder(tmp_path / "trace")
+    with traced_run(r, "demo", "success"):
+        pass
+    try:
+        with traced_run(r, "demo", "failure"):
+            raise RuntimeError("boom")
+    except RuntimeError:
+        pass
+    statuses = {run.operation: str(run.status) for run in r.runs}
+    assert statuses == {"success": "succeeded", "failure": "failed"}
+    assert verify_recorder(r).valid
 
 
 def test_tamper_is_detected(tmp_path: Path):
@@ -46,8 +60,7 @@ def test_lineage_rejects_cycle():
 def test_artifact_store(tmp_path: Path):
     store = ArtifactStore(tmp_path / "store")
     digest = store.put_bytes(b"carditrace")
-    assert store.exists(digest)
-    assert store.verify(digest)
+    assert store.exists(digest) and store.verify(digest)
     assert store.get_bytes(digest) == b"carditrace"
 
 
