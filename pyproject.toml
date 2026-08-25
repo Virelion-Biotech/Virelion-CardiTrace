@@ -4,13 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "virelion-cardi-trace"
-version = "0.1.0"
-description = "Reproducible provenance, lineage, audit, and traceability for Virelion cardiac AI workflows."
+version = "0.2.0"
+description = "High-assurance provenance, lineage, reproducibility, audit, federation, and traceability for Virelion cardiac AI workflows."
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [{name = "Virelion Biotech"}]
 license = {file = "LICENSE"}
-keywords = ["provenance", "lineage", "reproducibility", "audit", "cardiac", "biomedical-ai"]
+keywords = ["provenance", "lineage", "reproducibility", "audit", "federation", "telemetry", "cardiac", "biomedical-ai"]
 
 [project.optional-dependencies]
 test = ["pytest>=8"]
