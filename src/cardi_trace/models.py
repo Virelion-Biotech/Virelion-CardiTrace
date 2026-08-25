@@ -2,20 +2,25 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
-from enum import StrEnum
+from enum import Enum
 from typing import Any
 import time
 import uuid
 
 
-class TraceStatus(StrEnum):
+class _StrEnum(str, Enum):
+    def __str__(self) -> str:
+        return self.value
+
+
+class TraceStatus(_StrEnum):
     RUNNING = "running"
     SUCCEEDED = "succeeded"
     FAILED = "failed"
     CANCELLED = "cancelled"
 
 
-class ArtifactKind(StrEnum):
+class ArtifactKind(_StrEnum):
     FILE = "file"
     PAYLOAD = "payload"
     DIRECTORY = "directory"
@@ -61,32 +66,10 @@ class TraceEvent:
     event_hash: str
 
     @classmethod
-    def new(
-        cls,
-        *,
-        event_type: str,
-        actor: str,
-        component: str,
-        payload: dict[str, Any],
-        run_id: str | None = None,
-        timestamp: float | None = None,
-        event_id: str | None = None,
-        previous_hash: str | None = None,
-    ) -> "TraceEvent":
-        return cls(
-            event_id=event_id or str(uuid.uuid4()),
-            timestamp=timestamp if timestamp is not None else time.time(),
-            event_type=event_type,
-            run_id=run_id,
-            actor=actor,
-            component=component,
-            payload=payload,
-            previous_hash=previous_hash,
-            event_hash="",
-        )
+    def new(cls, *, event_type: str, actor: str, component: str, payload: dict[str, Any], run_id: str | None = None, timestamp: float | None = None, event_id: str | None = None, previous_hash: str | None = None) -> "TraceEvent":
+        return cls(event_id=event_id or str(uuid.uuid4()), timestamp=timestamp if timestamp is not None else time.time(), event_type=event_type, run_id=run_id, actor=actor, component=component, payload=payload, previous_hash=previous_hash, event_hash="")
 
-    def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
+    def to_dict(self) -> dict[str, Any]: return asdict(self)
 
 
 @dataclass(frozen=True)
@@ -107,20 +90,9 @@ class RunRecord:
 
     @classmethod
     def new(cls, component: str, operation: str, **kwargs: Any) -> "RunRecord":
-        return cls(
-            run_id=str(uuid.uuid4()),
-            component=component,
-            operation=operation,
-            started_at=time.time(),
-            finished_at=None,
-            status=TraceStatus.RUNNING,
-            parameters=kwargs.pop("parameters", {}),
-            environment=kwargs.pop("environment", {}),
-            **kwargs,
-        )
+        return cls(run_id=str(uuid.uuid4()), component=component, operation=operation, started_at=time.time(), finished_at=None, status=TraceStatus.RUNNING, parameters=kwargs.pop("parameters", {}), environment=kwargs.pop("environment", {}), **kwargs)
 
-    def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
+    def to_dict(self) -> dict[str, Any]: return asdict(self)
 
 
 @dataclass(frozen=True)
@@ -131,8 +103,7 @@ class LineageEdge:
     run_id: str | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
+    def to_dict(self) -> dict[str, Any]: return asdict(self)
 
 
 @dataclass(frozen=True)
@@ -142,5 +113,4 @@ class AuditIssue:
     message: str
     subject: str | None = None
 
-    def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
+    def to_dict(self) -> dict[str, Any]: return asdict(self)
