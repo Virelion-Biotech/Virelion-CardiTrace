@@ -1,5 +1,6 @@
 from pathlib import Path
-from cardi_trace import TraceRecorder, TraceStatus, verify_recorder, LineageGraph
+import json
+from cardi_trace import ArtifactStore, TraceRecorder, TraceStatus, verify_recorder, LineageGraph
 from cardi_trace.hashing import sha256_payload
 
 
@@ -16,7 +17,20 @@ def test_trace_lifecycle(tmp_path: Path):
     r.finish_run(run.run_id, status=TraceStatus.SUCCEEDED)
     report = verify_recorder(r)
     assert report.valid
-    assert report.events_checked == 5
+    assert report.events_checked == 6
+
+
+def test_tamper_is_detected(tmp_path: Path):
+    r = TraceRecorder(tmp_path / "trace")
+    run = r.start_run("unit", "operation")
+    r.finish_run(run.run_id)
+    lines = r.events_path.read_text(encoding="utf-8").splitlines()
+    first = json.loads(lines[0]); first["payload"]["run"]["operation"] = "tampered"
+    lines[0] = json.dumps(first, sort_keys=True, separators=(",", ":"))
+    r.events_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    report = verify_recorder(TraceRecorder(tmp_path / "trace"))
+    assert not report.valid
+    assert any(i.code == "event.hash" for i in report.issues)
 
 
 def test_lineage_rejects_cycle():
@@ -26,6 +40,15 @@ def test_lineage_rejects_cycle():
         assert False, "cycle should fail"
     except ValueError:
         pass
+    assert g.topological() == ["a", "b", "c"]
+
+
+def test_artifact_store(tmp_path: Path):
+    store = ArtifactStore(tmp_path / "store")
+    digest = store.put_bytes(b"carditrace")
+    assert store.exists(digest)
+    assert store.verify(digest)
+    assert store.get_bytes(digest) == b"carditrace"
 
 
 def test_bundle(tmp_path: Path):
@@ -35,3 +58,4 @@ def test_bundle(tmp_path: Path):
     r.attach_output(run.run_id, out); r.finish_run(run.run_id)
     path = r.export_bundle(tmp_path / "bundle.json")
     assert path.exists()
+    assert "bundle_digest" in json.loads(path.read_text(encoding="utf-8"))
