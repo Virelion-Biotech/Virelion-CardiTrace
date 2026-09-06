@@ -1,150 +1,87 @@
 # Virelion-CardiTrace
 
-**High-assurance provenance, lineage, reproducibility, audit, federation, and telemetry infrastructure for Virelion's cardiac AI ecosystem.**
+CardiTrace is a provenance and reproducibility library for recording computational runs, artifacts, lineage, execution fingerprints, and integrity metadata across Virelion repositories.
 
-CardiTrace is the evidence layer across CardiAgent → CardiVex → CardiBench → CardiEval → CardiAtlas → CardiLearn → CardiSim. It is intentionally implementation-agnostic: sibling repositories emit structured trace events and artifact identities without importing one another.
+## Scope
 
-## Why v0.2 is substantially stronger
+- SHA-256 identities for payloads, files, models, datasets, reports, and configurations;
+- hash-chained trace events;
+- execution fingerprints based on code, environment, inputs, parameters, and seeds;
+- run/session records;
+- content-addressed artifact storage;
+- artifact lineage and cycle checks;
+- schema-versioned trace bundles;
+- Merkle-root integrity commitments;
+- cross-repository trace envelopes;
+- provenance policy gates and regression comparison;
+- replay planning and identity comparison without executing arbitrary code;
+- metadata redaction;
+- read-only lineage/query APIs and CLI tools.
 
-CardiTrace is no longer just an append-only logger. Each logical computation now receives an **execution fingerprint** derived from code identity, environment, inputs, parameters, and deterministic seeds. Artifacts remain content-addressed, lineage is persisted as a first-class graph, metadata is automatically redacted at the trace boundary, and bundles carry a Merkle commitment that can be anchored outside the repository.
-
-The platform now supports:
-
-- SHA-256 identities for files, payloads, configurations, models, datasets, reports, and code snapshots
-- append-only hash-chained events
-- execution fingerprints for computational identity and replay comparison
-- explicit run/session records with inputs, outputs, code, environment, seeds, and status
-- persistent artifact lineage with cycle detection during audit
-- local content-addressed object storage
-- schema-versioned portable bundles with integrity-checked loading
-- Merkle roots for efficient external integrity anchoring
-- federated cross-repository trace envelopes
-- policy gates for CI/release provenance requirements
-- trace diffing and regression detection
-- replay planning and identity validation without executing arbitrary code
-- sensitive-metadata redaction
-- OpenTelemetry-shaped span export without forcing a telemetry dependency
-- read-only query APIs for lineage, runs, artifacts, and fingerprints
-- CLI inspection and bundle-verification commands
-
-## Architecture
+## Identity model
 
 ```text
-                              CardiTrace
-                                  │
-        ┌─────────────────────────┼──────────────────────────┐
-        │                         │                          │
-   Identity plane            Evidence plane             Integrity plane
-        │                         │                          │
- fingerprints              event ledger                Merkle root
- artifact hashes            run registry                audit engine
- code/env/seed IDs          artifact registry            policy gates
-        │                         │                          │
-        └─────────────────────────┼──────────────────────────┘
-                                  │
-                           lineage / federation
-                                  │
-          ┌───────────────┬───────┴────────┬───────────────┐
-          ▼               ▼                ▼               ▼
-      CardiAgent       CardiVex        CardiLearn       CardiEval
-          │               │                │               │
-          └───────────────┴────────────────┴───────────────┘
-                                  │
-                         reproducible evidence
-                                  │
-                    archive / CI / external anchor
+artifact identity
+      ↓
+execution identity
+      ↓
+workflow lineage
+      ↓
+evidence/integrity identity
 ```
 
-## Quick start
+A replay comparison checks captured identities; CardiTrace does not execute arbitrary code from a trace.
+
+## Installation
 
 ```bash
 python -m pip install -e '.[test]'
+```
+
+## CLI
+
+```bash
 carditrace demo ./trace-demo
 carditrace verify ./trace-demo
 carditrace inspect ./trace-demo
 carditrace bundle ./trace-demo/bundle.json
 ```
 
-Python:
+## Python API
 
 ```python
-from cardi_trace import TraceRecorder, TracePolicy, TraceQuery
+from cardi_trace import TraceRecorder
 
 trace = TraceRecorder("./trace", component="CardiEval")
-run = trace.start_run(
-    "CardiEval",
-    "evaluate",
-    parameters={"split": "test", "seed": 42},
-    seeds={"numpy": 42, "python": 42},
-)
-
-raw = trace.register_payload({"benchmark": "CardiBench", "n": 256}, role="input")
-trace.attach_input(run.run_id, raw)
-
-result = trace.register_payload({"accuracy": 0.91}, role="output")
-trace.attach_output(run.run_id, result)
-trace.add_lineage(raw.artifact_id, result.artifact_id, run_id=run.run_id)
+run = trace.start_run("CardiEval", "evaluate", parameters={"seed": 42})
+# register and attach inputs/outputs, then finish the run
 trace.finish_run(run.run_id)
-
-TracePolicy(require_outputs_for_success=True).assert_compliant(trace)
-print(TraceQuery(trace).execution_fingerprints())
-trace.export_bundle("bundle.json")
 ```
 
-## Strong reproducibility model
+## Federation
 
-A trace can distinguish four levels of identity:
+Repositories can exchange trace envelopes containing trace IDs, artifact references, and integrity commitments. Consumers can verify the envelope against their local trace without importing another repository's implementation.
 
-1. **Artifact identity** — the bytes or canonical payload.
-2. **Execution identity** — code + environment + inputs + parameters + seeds.
-3. **Workflow identity** — the lineage graph linking transformations.
-4. **Evidence identity** — the event-chain and Merkle commitment covering what was recorded.
+## Security and integrity limitations
 
-A replay comparison is therefore explicit. CardiTrace produces a replay plan and validates a newly captured run against the original identity; it does not pretend that arbitrary code can safely be executed from an untrusted trace.
+Hashing and Merkle commitments detect ordinary post-hoc changes to recorded artifacts. They do not protect against an attacker who controls the original data, runtime, repository, and verification environment. Higher assurance requires independent trust anchors or signed release artifacts.
 
-## Cross-repository federation
+CardiTrace records computational provenance. It does not generate biological construction or experimental instructions.
 
-A repository can create an envelope containing a trace ID, artifact references, and Merkle root. Another Virelion repository can independently verify the envelope against its local trace. This allows CardiAgent, CardiVex, CardiEval, and the rest of the ecosystem to preserve autonomy while still producing a joinable evidence graph.
+## Integration
 
-## Integrity and threat model
+CardiTrace can record runs from CardiAgent, CardiVex, CardiAtlas, CardiBench, CardiEval, CardiLearn, CardiSim, and HeartTwin without making those repositories runtime dependencies.
 
-CardiTrace detects ordinary post-hoc tampering through event hashes, artifact hashes, lineage verification, bundle digests, and Merkle commitments. It is not a magical anti-adversary system: an attacker with control of the original data, repository, runtime, and verification software can replace all of them. Higher assurance comes from independently anchoring Merkle or bundle digests in signed releases, immutable object storage, or another trust domain.
+## Testing
 
-## Scientific boundary
-
-CardiTrace records scientific and machine-learning provenance. It does not generate operational wet-lab protocols, pathogen sequences, culturing conditions, doses, or other biological construction instructions.
-
-## Compatibility
-
-- Python: 3.10+
-- Runtime dependencies: Python standard library only
-- Test dependency: `pytest`
-- Canonical integration branch: `main`
-
-## Package layout
-
-```text
-src/cardi_trace/
-  models.py         immutable data model
-  recorder.py       durable provenance capture + execution fingerprints
-  hashing.py        canonicalization + SHA-256 identity
-  fingerprint.py    code/environment/execution identity
-  lineage.py        graph algorithms
-  audit.py          multi-layer verification
-  export.py         schema-versioned bundles
-  schema.py         trace schema + migration helpers
-  merkle.py         external integrity commitments
-  federation.py     cross-repository envelopes
-  policy.py         provenance policy gates
-  diff.py           regression comparison
-  replay.py         replay planning + validation
-  redaction.py      sensitive metadata filtering
-  telemetry.py      OpenTelemetry-shaped export
-  query.py          read-only query engine
-  store.py          content-addressed artifact store
-  integration.py    Virelion adapter helpers
-  context.py        context manager + decorator API
-  cli.py             command-line interface
+```bash
+pytest
 ```
 
-**Current release: `0.2.0`.**
+## License
+
+GNU Affero General Public License v3.0 or later (AGPL-3.0-or-later). See `LICENSE`.
+
+## Citation
+
+Cite the repository release and the trace schema/version used for reproducibility records.
