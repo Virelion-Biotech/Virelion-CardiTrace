@@ -1,36 +1,22 @@
 # Virelion-CardiTrace
 
-CardiTrace is a provenance and reproducibility library for recording computational runs, artifacts, lineage, execution fingerprints, and integrity metadata across Virelion repositories.
+CardiTrace is a provenance and reproducibility library for recording computational runs, artifacts, lineage, execution fingerprints, and integrity metadata.
 
-## Scope
+## What it contains
 
-- SHA-256 identities for payloads, files, models, datasets, reports, and configurations;
-- hash-chained trace events;
-- execution fingerprints based on code, environment, inputs, parameters, and seeds;
-- run/session records;
-- content-addressed artifact storage;
-- artifact lineage and cycle checks;
-- schema-versioned trace bundles;
-- Merkle-root integrity commitments;
-- cross-repository trace envelopes;
-- provenance policy gates and regression comparison;
-- replay planning and identity comparison without executing arbitrary code;
-- metadata redaction;
-- read-only lineage/query APIs and CLI tools.
-
-## Identity model
-
-```text
-artifact identity
-      ↓
-execution identity
-      ↓
-workflow lineage
-      ↓
-evidence/integrity identity
-```
-
-A replay comparison checks captured identities; CardiTrace does not execute arbitrary code from a trace.
+- SHA-256 identities for payloads, files, models, datasets, reports, and configurations.
+- Hash-chained trace events.
+- Execution fingerprints based on code, environment, inputs, parameters, and seeds.
+- Run/session records.
+- Content-addressed artifact storage.
+- Artifact lineage and cycle checks.
+- Schema-versioned trace bundles.
+- Merkle-root integrity commitments.
+- Trace envelopes for exchanging trace IDs, artifact references, and integrity commitments.
+- Provenance policy gates and regression comparison.
+- Replay planning and identity comparison without executing arbitrary code.
+- Metadata redaction.
+- Read-only lineage/query APIs and CLI tools.
 
 ## Installation
 
@@ -38,7 +24,9 @@ A replay comparison checks captured identities; CardiTrace does not execute arbi
 python -m pip install -e '.[test]'
 ```
 
-## CLI
+## Usage
+
+CLI:
 
 ```bash
 carditrace demo ./trace-demo
@@ -47,41 +35,31 @@ carditrace inspect ./trace-demo
 carditrace bundle ./trace-demo/bundle.json
 ```
 
-## Python API
+Python:
 
 ```python
 from cardi_trace import TraceRecorder
 
-trace = TraceRecorder("./trace", component="CardiEval")
-run = trace.start_run("CardiEval", "evaluate", parameters={"seed": 42})
+trace = TraceRecorder("./trace", component="example")
+run = trace.start_run("example", "operation", parameters={"seed": 42})
 # register and attach inputs/outputs, then finish the run
 trace.finish_run(run.run_id)
 ```
 
-## Federation
+## Inputs and outputs
 
-Repositories can exchange trace envelopes containing trace IDs, artifact references, and integrity commitments. Consumers can verify the envelope against their local trace without importing another repository's implementation.
+**Inputs:** run metadata, component/operation identifiers, parameters, seeds, environment/code fingerprints, input/output artifacts, and optional provenance metadata.
 
-## Security and integrity limitations
+**Outputs:** trace events, run/session records, artifact identities, lineage records, trace bundles/envelopes, integrity commitments, verification reports, and replay-comparison results.
 
-Hashing and Merkle commitments detect ordinary post-hoc changes to recorded artifacts. They do not protect against an attacker who controls the original data, runtime, repository, and verification environment. Higher assurance requires independent trust anchors or signed release artifacts.
+## Validation
 
-CardiTrace records computational provenance. It does not generate biological construction or experimental instructions.
+The test suite covers trace creation, identity/hash behavior, lineage checks, bundle handling, and verification behavior. Verification checks captured identities and integrity commitments without executing arbitrary code from a trace.
 
-## Integration
+## Limitations
 
-CardiTrace can record runs from CardiAgent, CardiVex, CardiAtlas, CardiBench, CardiEval, CardiLearn, CardiSim, and HeartTwin without making those repositories runtime dependencies.
-
-## Testing
-
-```bash
-pytest
-```
+Hashing and Merkle commitments detect ordinary post-hoc changes but do not protect against an attacker who controls the original data, runtime, repository, and verification environment. Higher assurance requires independent trust anchors or signed release artifacts. Provenance records document computational history; they do not establish scientific validity.
 
 ## License
 
 GNU Affero General Public License v3.0 or later (AGPL-3.0-or-later). See `LICENSE`.
-
-## Citation
-
-Cite the repository release and the trace schema/version used for reproducibility records.
