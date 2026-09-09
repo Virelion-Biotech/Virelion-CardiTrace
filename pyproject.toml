@@ -17,6 +17,7 @@ test = ["pytest>=8"]
 
 [project.scripts]
 carditrace = "cardi_trace.cli:main"
+carditrace-hearttwin = "cardi_trace.hearttwin_adapter:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
