@@ -2,6 +2,7 @@
 from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
+from .fingerprint import execution_fingerprint
 
 @dataclass(frozen=True)
 class ReplayPlan:
@@ -20,7 +21,9 @@ def validate_replay(original,candidate):
     if tuple(original.input_artifacts)!=tuple(candidate.input_artifacts): mismatches.append("inputs")
     if original.parameters!=candidate.parameters: mismatches.append("parameters")
     if original.code_identity!=candidate.code_identity: mismatches.append("code_identity")
-    expected=original.metadata.get("execution_fingerprint"); actual=candidate.metadata.get("execution_fingerprint")
-    if expected and actual and expected!=actual: mismatches.append("execution_fingerprint")
-    elif not expected or not actual: mismatches.append("missing_execution_fingerprint")
+    original_detail=original.metadata.get("execution_fingerprint_detail",{})
+    candidate_actual=candidate.metadata.get("execution_fingerprint")
+    original_expected=execution_fingerprint(code_identity=original.code_identity, environment_identity=original_detail.get("environment_identity"), input_artifacts=original.input_artifacts, parameters=original.parameters, seeds=original.metadata.get("seeds",{})).digest
+    if not candidate_actual: mismatches.append("missing_execution_fingerprint")
+    elif original_expected!=candidate_actual: mismatches.append("execution_fingerprint")
     return tuple(mismatches)
