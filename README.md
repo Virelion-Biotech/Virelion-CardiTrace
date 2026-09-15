@@ -1,32 +1,37 @@
 # Virelion-CardiTrace
 
-CardiTrace is a provenance and reproducibility library for recording computational runs, artifacts, lineage, execution fingerprints, and integrity metadata.
+CardiTrace is a high-assurance biomedical provenance and reproducibility library for Virelion cardiac AI workflows.
 
-## What it contains
+## Architecture
+
+CardiTrace combines its original append-only, content-addressed ledger with interoperable provenance concepts drawn from mature open-source provenance systems. The implementation remains dependency-free.
 
 - SHA-256 identities for payloads, files, models, datasets, reports, and configurations.
-- Hash-chained trace events.
-- Execution fingerprints based on code, environment, inputs, parameters, and seeds.
-- Run/session records.
-- Content-addressed artifact storage.
-- Artifact lineage and cycle checks.
-- Schema-versioned trace bundles.
-- Merkle-root integrity commitments.
-- Trace envelopes for exchanging trace IDs, artifact references, and integrity commitments.
-- Provenance policy gates and regression comparison.
-- Replay planning and identity comparison without executing arbitrary code.
-- Metadata redaction.
-- Read-only lineage/query APIs and CLI tools.
-
-## Installation
-
-```bash
-python -m pip install -e '.[test]'
-```
+- Hash-chained trace events and Merkle commitments.
+- Execution fingerprints over code, environment, inputs, parameters, and seeds.
+- Run/session records, telemetry, policy gates, redaction, replay comparison, and federation.
+- Semantic entity/activity/agent/relation graph compatible in shape with W3C PROV.
+- Scientific dataset manifests for sources such as GEO, SRA, PhysioNet, local data, and derived datasets.
+- Provenance cards for compact model/report registry metadata.
+- Upstream/downstream impact analysis for change propagation.
+- Projection of the existing CardiTrace recorder directly into the semantic graph, preserving legacy traces.
+- Existing HeartTwin adapter and component handoff APIs remain part of the stack.
 
 ## Usage
 
-CLI:
+```python
+from cardi_trace import TraceRecorder, graph_from_recorder, provenance_card
+
+trace = TraceRecorder("./trace", component="example")
+run = trace.start_run("example", "operation", parameters={"seed": 42})
+# register and attach inputs/outputs
+trace.finish_run(run.run_id)
+
+graph = graph_from_recorder(trace)
+card = provenance_card(graph, title="Example analysis", run_id=run.run_id)
+```
+
+## CLI
 
 ```bash
 carditrace demo ./trace-demo
@@ -35,30 +40,17 @@ carditrace inspect ./trace-demo
 carditrace bundle ./trace-demo/bundle.json
 ```
 
-Python:
-
-```python
-from cardi_trace import TraceRecorder
-
-trace = TraceRecorder("./trace", component="example")
-run = trace.start_run("example", "operation", parameters={"seed": 42})
-# register and attach inputs/outputs, then finish the run
-trace.finish_run(run.run_id)
-```
-
-## Inputs and outputs
-
-**Inputs:** run metadata, component/operation identifiers, parameters, seeds, environment/code fingerprints, input/output artifacts, and optional provenance metadata.
-
-**Outputs:** trace events, run/session records, artifact identities, lineage records, trace bundles/envelopes, integrity commitments, verification reports, and replay-comparison results.
-
 ## Validation
 
-The test suite covers trace creation, identity/hash behavior, lineage checks, bundle handling, and verification behavior. Verification checks captured identities and integrity commitments without executing arbitrary code from a trace.
+The test suite covers the legacy trace system plus semantic provenance graph construction, deterministic dataset manifests, ledger-to-PROV projection, provenance cards, and impact traversal.
+
+## Design lineage
+
+CardiTrace incorporates architectural lessons from Flowcept, RI-SE/dataprov, DVC, and scientific data-management systems. The current implementation is independent rather than a source-code fork. See `THIRD_PARTY_NOTICES.md` for attribution and the rules governing future source-level reuse.
 
 ## Limitations
 
-Hashing and Merkle commitments detect ordinary post-hoc changes but do not protect against an attacker who controls the original data, runtime, repository, and verification environment. Higher assurance requires independent trust anchors or signed release artifacts. Provenance records document computational history; they do not establish scientific validity.
+Integrity hashes detect ordinary post-hoc changes but cannot establish trust against an attacker controlling the source, runtime, repository, and verifier. Provenance records computational history; they do not establish scientific validity.
 
 ## License
 
