@@ -11,40 +11,44 @@ from .models import ArtifactKind, ArtifactRef, LineageEdge, RunRecord, TraceEven
 from .redaction import DEFAULT_SENSITIVE_KEYS, redact
 
 class TraceRecorder:
-    """Durable provenance ledger with execution identity and lineage support."""
-    def __init__(self, root: str | Path, actor: str = "unknown", component: str = "CardiTrace", *, redact_metadata: bool = True, sensitive_keys: Iterable[str] = DEFAULT_SENSITIVE_KEYS) -> None:
+    """Durable provenance ledger with execution identity, metrics, tags, and lineage support."""
+    def __init__(self, root, actor="unknown", component="CardiTrace", *, redact_metadata=True, sensitive_keys=DEFAULT_SENSITIVE_KEYS):
         self.root=Path(root); self.root.mkdir(parents=True,exist_ok=True); self.actor=actor; self.component=component; self.redact_metadata=redact_metadata; self.sensitive_keys=frozenset(sensitive_keys)
         self.events_path=self.root/"events.jsonl"; self.runs_path=self.root/"runs.json"; self.artifacts_path=self.root/"artifacts.json"; self.edges_path=self.root/"lineage.json"
         self._events=self._load_events(); self._runs=self._load_runs(); self._artifacts=self._load_artifacts(); self._edges=self._load_edges()
-    def _load_events(self):
-        return [] if not self.events_path.exists() else [TraceEvent(**json.loads(line)) for line in self.events_path.read_text(encoding="utf-8").splitlines() if line.strip()]
-    def _load_runs(self):
-        return {} if not self.runs_path.exists() else {k:RunRecord(**v) for k,v in json.loads(self.runs_path.read_text(encoding="utf-8")).items()}
-    def _load_artifacts(self):
-        return {} if not self.artifacts_path.exists() else {k:ArtifactRef(**v) for k,v in json.loads(self.artifacts_path.read_text(encoding="utf-8")).items()}
-    def _load_edges(self):
-        return [] if not self.edges_path.exists() else [LineageEdge(**v) for v in json.loads(self.edges_path.read_text(encoding="utf-8"))]
+    def _load_events(self): return [] if not self.events_path.exists() else [TraceEvent(**json.loads(x)) for x in self.events_path.read_text(encoding="utf-8").splitlines() if x.strip()]
+    def _load_runs(self): return {} if not self.runs_path.exists() else {k:RunRecord(**v) for k,v in json.loads(self.runs_path.read_text(encoding="utf-8")).items()}
+    def _load_artifacts(self): return {} if not self.artifacts_path.exists() else {k:ArtifactRef(**v) for k,v in json.loads(self.artifacts_path.read_text(encoding="utf-8")).items()}
+    def _load_edges(self): return [] if not self.edges_path.exists() else [LineageEdge(**v) for v in json.loads(self.edges_path.read_text(encoding="utf-8"))]
     def _clean(self,value): return redact(value,sensitive_keys=self.sensitive_keys) if self.redact_metadata else value
     def _persist(self):
-        self.runs_path.write_text(json.dumps({k:v.to_dict() for k,v in self._runs.items()},sort_keys=True,indent=2),encoding="utf-8")
-        self.artifacts_path.write_text(json.dumps({k:v.to_dict() for k,v in self._artifacts.items()},sort_keys=True,indent=2),encoding="utf-8")
-        self.edges_path.write_text(json.dumps([e.to_dict() for e in self._edges],sort_keys=True,indent=2),encoding="utf-8")
+        self.runs_path.write_text(json.dumps({k:v.to_dict() for k,v in self._runs.items()},sort_keys=True,indent=2),encoding="utf-8"); self.artifacts_path.write_text(json.dumps({k:v.to_dict() for k,v in self._artifacts.items()},sort_keys=True,indent=2),encoding="utf-8"); self.edges_path.write_text(json.dumps([e.to_dict() for e in self._edges],sort_keys=True,indent=2),encoding="utf-8")
     def _append(self,event):
-        body=event.to_dict(); body["event_hash"]=""; event=replace(event,event_hash=digest_event(body))
+        body=event.to_dict(); body["event_hash"]=""; event=replace(event,event_hash=digest_event(body));
         with self.events_path.open("a",encoding="utf-8") as handle: handle.write(json.dumps(event.to_dict(),sort_keys=True,separators=(",",":"))+"\n")
         self._events.append(event); return event
     def record(self,event_type,payload,*,run_id=None,component=None):
-        previous=self._events[-1].event_hash if self._events else None
-        return self._append(TraceEvent.new(event_type=event_type,actor=self.actor,component=component or self.component,payload=self._clean(payload),run_id=run_id,previous_hash=previous))
-    def start_run(self,component,operation,*,parameters=None,environment=None,code_identity=None,parent_run_id=None,metadata=None,seeds=None,packages=()):
+        previous=self._events[-1].event_hash if self._events else None; return self._append(TraceEvent.new(event_type=event_type,actor=self.actor,component=component or self.component,payload=self._clean(payload),run_id=run_id,previous_hash=previous))
+    def start_run(self,component,operation,*,parameters=None,environment=None,code_identity=None,parent_run_id=None,metadata=None,seeds=None,packages=(),tags=None):
         parameters=parameters or {}; environment=environment or default_environment(packages=packages); metadata=dict(metadata or {})
         fp=execution_fingerprint(code_identity=code_identity,environment_identity=environment.get("fingerprint"),input_artifacts=(),parameters=parameters,seeds=seeds)
         metadata["execution_fingerprint"]=fp.digest; metadata["execution_fingerprint_detail"]=fp.to_dict(); metadata["seeds"]=self._clean(seeds or {})
-        run=RunRecord.new(component,operation,parameters=self._clean(parameters),environment=self._clean(environment),code_identity=code_identity or fp.code_identity,parent_run_id=parent_run_id,metadata=self._clean(metadata))
+        run=RunRecord.new(component,operation,parameters=self._clean(parameters),environment=self._clean(environment),code_identity=code_identity or fp.code_identity,parent_run_id=parent_run_id,metadata=self._clean(metadata),tags=self._clean(tags or {}))
         self._runs[run.run_id]=run; self._persist(); self.record("run.started",{"run":run.to_dict()},run_id=run.run_id,component=component); return run
     def _refresh_fingerprint(self,run):
-        detail=execution_fingerprint(code_identity=run.code_identity,environment_identity=run.metadata.get("execution_fingerprint_detail",{}).get("environment_identity"),input_artifacts=run.input_artifacts,parameters=run.parameters,seeds=run.metadata.get("seeds",{}))
-        return replace(run,metadata={**run.metadata,"execution_fingerprint":detail.digest,"execution_fingerprint_detail":detail.to_dict()})
+        detail=execution_fingerprint(code_identity=run.code_identity,environment_identity=run.metadata.get("execution_fingerprint_detail",{}).get("environment_identity"),input_artifacts=run.input_artifacts,parameters=run.parameters,seeds=run.metadata.get("seeds",{})); return replace(run,metadata={**run.metadata,"execution_fingerprint":detail.digest,"execution_fingerprint_detail":detail.to_dict()})
+    def log_metric(self,run_id,name,value):
+        if run_id not in self._runs: raise KeyError(f"Unknown run: {run_id}")
+        try: numeric=float(value)
+        except (TypeError,ValueError) as exc: raise TypeError("metric value must be numeric") from exc
+        run=replace(self._runs[run_id],metrics={**self._runs[run_id].metrics,str(name):numeric}); self._runs[run_id]=run; self._persist(); self.record("run.metric",{"name":str(name),"value":numeric},run_id=run_id,component=run.component); return numeric
+    def set_tag(self,run_id,name,value):
+        if run_id not in self._runs: raise KeyError(f"Unknown run: {run_id}")
+        run=replace(self._runs[run_id],tags={**self._runs[run_id].tags,str(name):str(value)}); self._runs[run_id]=run; self._persist(); self.record("run.tag",{"name":str(name),"value":str(value)},run_id=run_id,component=run.component); return str(value)
+    def log_metrics(self,run_id,metrics):
+        for name,value in metrics.items(): self.log_metric(run_id,name,value)
+    def set_tags(self,run_id,tags):
+        for name,value in tags.items(): self.set_tag(run_id,name,value)
     def finish_run(self,run_id,*,status=TraceStatus.SUCCEEDED,metadata=None):
         if run_id not in self._runs: raise KeyError(f"Unknown run: {run_id}")
         old=self._refresh_fingerprint(self._runs[run_id]); run=replace(old,finished_at=time.time(),status=status,metadata={**old.metadata,**self._clean(metadata or {})}); self._runs[run_id]=run; self._persist(); self.record("run.finished",{"run":run.to_dict()},run_id=run_id,component=run.component); return run
@@ -63,10 +67,7 @@ class TraceRecorder:
     def add_lineage(self,source_id,target_id,*,relation="derived_from",run_id=None,metadata=None):
         if source_id==target_id: raise ValueError("A lineage node cannot derive itself")
         if source_id not in self._artifacts or target_id not in self._artifacts: raise KeyError("Lineage endpoints must be registered artifacts")
-        graph=LineageGraph()
-        for edge in self._edges: graph.add_edge(edge.source_id,edge.target_id,edge.relation,edge.run_id,edge.metadata)
-        graph.add_edge(source_id,target_id,relation,run_id,self._clean(metadata or {}))
-        edge=LineageEdge(source_id,target_id,relation,run_id,self._clean(metadata or {}))
+        graph=LineageGraph(); [graph.add_edge(e.source_id,e.target_id,e.relation,e.run_id,e.metadata) for e in self._edges]; graph.add_edge(source_id,target_id,relation,run_id,self._clean(metadata or {})); edge=LineageEdge(source_id,target_id,relation,run_id,self._clean(metadata or {}))
         if not any(e.source_id==source_id and e.target_id==target_id and e.relation==relation for e in self._edges): self._edges.append(edge); self._persist(); self.record("lineage.edge",{"edge":edge.to_dict()},run_id=run_id)
         return edge
     @property
