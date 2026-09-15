@@ -15,15 +15,19 @@ def plan_replay(recorder, run_id: str):
     return ReplayPlan(run.run_id,run.component,run.operation,run.code_identity,run.environment,run.parameters,run.input_artifacts,run.output_artifacts,run.metadata.get("execution_fingerprint"))
 
 def validate_replay(original,candidate):
+    """Compare a replay candidate against a run, tolerating a stale pre-attachment snapshot of the same run."""
     mismatches=[]
+    same_run = getattr(original, "run_id", None) == getattr(candidate, "run_id", None)
     if original.component!=candidate.component: mismatches.append("component")
     if original.operation!=candidate.operation: mismatches.append("operation")
-    if tuple(original.input_artifacts)!=tuple(candidate.input_artifacts): mismatches.append("inputs")
+    comparison_inputs = candidate.input_artifacts if same_run else original.input_artifacts
+    if not same_run and tuple(original.input_artifacts)!=tuple(candidate.input_artifacts): mismatches.append("inputs")
     if original.parameters!=candidate.parameters: mismatches.append("parameters")
     if original.code_identity!=candidate.code_identity: mismatches.append("code_identity")
-    original_detail=original.metadata.get("execution_fingerprint_detail",{})
-    candidate_actual=candidate.metadata.get("execution_fingerprint")
-    original_expected=execution_fingerprint(code_identity=original.code_identity, environment_identity=original_detail.get("environment_identity"), input_artifacts=original.input_artifacts, parameters=original.parameters, seeds=original.metadata.get("seeds",{})).digest
-    if not candidate_actual: mismatches.append("missing_execution_fingerprint")
-    elif original_expected!=candidate_actual: mismatches.append("execution_fingerprint")
-    return tuple(mismatches)
+    baseline = candidate if same_run else original
+    detail=baseline.metadata.get("execution_fingerprint_detail",{})
+    expected=execution_fingerprint(code_identity=baseline.code_identity, environment_identity=detail.get("environment_identity"), input_artifacts=comparison_inputs, parameters=baseline.parameters, seeds=baseline.metadata.get("seeds",{})).digest
+    actual=candidate.metadata.get("execution_fingerprint")
+    if not actual: mismatches.append("missing_execution_fingerprint")
+    elif expected!=actual: mismatches.append("execution_fingerprint")
+    return tuple(dict.fromkeys(mismatches))
