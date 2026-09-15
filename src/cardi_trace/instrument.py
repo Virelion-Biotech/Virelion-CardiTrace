@@ -4,21 +4,26 @@ import functools, time, traceback
 from contextlib import contextmanager
 from typing import Any, Callable, Iterator
 from .models import TraceStatus
+from .resources import snapshot, delta
 
 @contextmanager
-def activity(recorder, component: str, operation: str, *, inputs=(), parameters=None, metadata=None, code_identity=None, parent_run_id=None, seeds=None, packages=()) -> Iterator[Any]:
+def activity(recorder, component: str, operation: str, *, inputs=(), parameters=None, metadata=None, code_identity=None, parent_run_id=None, seeds=None, packages=(), capture_resources=True) -> Iterator[Any]:
     """Record one activity without requiring callers to manage start/finish manually."""
     run = recorder.start_run(component, operation, parameters=parameters, metadata=metadata, code_identity=code_identity, parent_run_id=parent_run_id, seeds=seeds, packages=packages)
-    for item in inputs:
-        recorder.attach_input(run.run_id, item)
-    started = time.perf_counter()
+    for item in inputs: recorder.attach_input(run.run_id, item)
+    started = time.perf_counter(); before = snapshot() if capture_resources else None
+    def telemetry():
+        out = {"elapsed_seconds": time.perf_counter() - started}
+        if before is not None: out["resource_delta"] = delta(before, snapshot())
+        return out
     try:
         yield run
     except BaseException as exc:
-        recorder.finish_run(run.run_id, status=TraceStatus.FAILED, metadata={"exception_type": type(exc).__name__, "exception_message": str(exc), "elapsed_seconds": time.perf_counter() - started, "traceback": traceback.format_exc(limit=20)})
+        meta = telemetry(); meta.update({"exception_type": type(exc).__name__, "exception_message": str(exc), "traceback": traceback.format_exc(limit=20)})
+        recorder.finish_run(run.run_id, status=TraceStatus.FAILED, metadata=meta)
         raise
     else:
-        recorder.finish_run(run.run_id, status=TraceStatus.SUCCEEDED, metadata={"elapsed_seconds": time.perf_counter() - started})
+        recorder.finish_run(run.run_id, status=TraceStatus.SUCCEEDED, metadata=telemetry())
 
 def traced(recorder, component: str | None = None, operation: str | None = None, *, parameters: Callable[..., dict[str, Any]] | None = None):
     """Decorator for automatic run capture; return values are not serialized automatically."""
@@ -26,8 +31,7 @@ def traced(recorder, component: str | None = None, operation: str | None = None,
         @functools.wraps(fn)
         def wrapper(*args, **kwargs):
             params = parameters(*args, **kwargs) if parameters else {"args_count": len(args), "kwargs": sorted(kwargs)}
-            with activity(recorder, component or fn.__module__, operation or fn.__qualname__, parameters=params):
-                return fn(*args, **kwargs)
+            with activity(recorder, component or fn.__module__, operation or fn.__qualname__, parameters=params): return fn(*args, **kwargs)
         return wrapper
     return decorate
 
