@@ -15,4 +15,4 @@ def test_authenticated_federation_and_campaign(tmp_path):
     assert report["run_count"]==2
     assert report["metric"]["best"][0]==b.run_id
     diff=compare_runs(recorder,a.run_id,b.run_id)
-    assert diff["metric_delta"]["accuracy"]==0.1
+    assert abs(diff["metric_delta"]["accuracy"]-0.1)<1e-12
