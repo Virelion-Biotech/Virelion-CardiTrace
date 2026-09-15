@@ -18,17 +18,10 @@ from .telemetry import TraceSpan, export_otlp_json, spans_from_recorder
 from .federation import TraceEnvelope, create_envelope, verify_envelope
 from .merkle import merkle_root, recorder_merkle_root
 from .schema import SCHEMA_VERSION, migrate_v1_to_v2, validate_envelope
+from .provenance import ProvenanceGraph, ProvEntity, ProvActivity, ProvAgent, ProvRelation, dataset_manifest, register_source, register_file_entity, graph_from_recorder
+from .card import provenance_card, impact_report
 
 __all__ = [
-    "ArtifactKind", "ArtifactRef", "AuditIssue", "LineageEdge", "RunRecord", "TraceEvent", "TraceStatus",
-    "TraceRecorder", "LineageGraph", "AuditReport", "verify_recorder", "verify_trace_dir", "TraceManifest",
-    "ArtifactStore", "build_bundle", "export_bundle", "export_jsonl", "load_bundle",
-    "trace_component_event", "trace_handoff", "trace_model_use", "traced_run", "trace_function", "TraceQuery",
-    "ExecutionFingerprint", "code_fingerprint", "environment_fingerprint", "execution_fingerprint", "git_identity",
-    "PolicyViolation", "TracePolicy", "TracePolicyError", "TraceDiff", "compare_traces", "trace_digest",
-    "ReplayPlan", "plan_replay", "validate_replay", "redact", "TraceSpan", "export_otlp_json", "spans_from_recorder",
-    "TraceEnvelope", "create_envelope", "verify_envelope", "merkle_root", "recorder_merkle_root",
-    "SCHEMA_VERSION", "migrate_v1_to_v2", "validate_envelope",
+    "ArtifactKind", "ArtifactRef", "AuditIssue", "LineageEdge", "RunRecord", "TraceEvent", "TraceStatus", "TraceRecorder", "LineageGraph", "AuditReport", "verify_recorder", "verify_trace_dir", "TraceManifest", "ArtifactStore", "build_bundle", "export_bundle", "export_jsonl", "load_bundle", "trace_component_event", "trace_handoff", "trace_model_use", "traced_run", "trace_function", "TraceQuery", "ExecutionFingerprint", "code_fingerprint", "environment_fingerprint", "execution_fingerprint", "git_identity", "PolicyViolation", "TracePolicy", "TracePolicyError", "TraceDiff", "compare_traces", "trace_digest", "ReplayPlan", "plan_replay", "validate_replay", "redact", "TraceSpan", "export_otlp_json", "spans_from_recorder", "TraceEnvelope", "create_envelope", "verify_envelope", "merkle_root", "recorder_merkle_root", "SCHEMA_VERSION", "migrate_v1_to_v2", "validate_envelope", "ProvenanceGraph", "ProvEntity", "ProvActivity", "ProvAgent", "ProvRelation", "dataset_manifest", "register_source", "register_file_entity", "graph_from_recorder", "provenance_card", "impact_report",
 ]
-
-__version__ = "0.2.0"
+__version__ = "0.3.0"
