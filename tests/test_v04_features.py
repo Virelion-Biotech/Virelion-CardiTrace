@@ -13,6 +13,7 @@ def test_pipeline_lock_and_cycle_detection(tmp_path):
     p.add(Stage("train", "train", deps=("prepared",), outs=("model",)))
     lock = lock_pipeline(p, path=tmp_path / "trace.lock.json")
     assert lock["order"] == ["prepare", "train"]
+    assert lock["stages"]["train"]["stage_deps"] == ["prepare"]
     p2 = Pipeline()
     p2.add(Stage("a", "a", deps=("b",), outs=("a",)))
     p2.add(Stage("b", "b", deps=("a",), outs=("b",)))
@@ -34,6 +35,6 @@ def test_openlineage_export(tmp_path):
     assert run.run_id in text
 
 def test_changed_stages_propagates_downstream():
-    old = {"stages": {"a": {"digest": "1"}, "b": {"digest": "2", "deps": ["a"]}, "c": {"digest": "3", "deps": ["b"]}}}
-    new = {"stages": {"a": {"digest": "9"}, "b": {"digest": "2", "deps": ["a"]}, "c": {"digest": "3", "deps": ["b"]}}}
-    assert changed_stages(old, new) == ["a", "b"]
+    old = {"stages": {"a": {"digest": "1", "stage_deps": []}, "b": {"digest": "2", "stage_deps": ["a"]}, "c": {"digest": "3", "stage_deps": ["b"]}}}
+    new = {"stages": {"a": {"digest": "9", "stage_deps": []}, "b": {"digest": "2", "stage_deps": ["a"]}, "c": {"digest": "3", "stage_deps": ["b"]}}}
+    assert changed_stages(old, new) == ["a", "b", "c"]
