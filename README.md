@@ -1,34 +1,51 @@
 # Virelion-CardiTrace
 
-CardiTrace is a high-assurance biomedical provenance and reproducibility library for Virelion cardiac AI workflows.
+CardiTrace records computational provenance, artifact identity, lineage, execution context, integrity metadata, and reproducibility state for Virelion workflows.
 
 ## Architecture
 
-CardiTrace combines its original append-only, content-addressed ledger with interoperable provenance concepts drawn from mature open-source provenance systems. The implementation remains dependency-free.
-
 - SHA-256 identities for payloads, files, models, datasets, reports, and configurations.
-- Hash-chained trace events and Merkle commitments.
+- Append-only hash-chained events and Merkle commitments.
 - Execution fingerprints over code, environment, inputs, parameters, and seeds.
-- Run/session records, telemetry, policy gates, redaction, replay comparison, and federation.
-- Semantic entity/activity/agent/relation graph compatible in shape with W3C PROV.
-- Scientific dataset manifests for sources such as GEO, SRA, PhysioNet, local data, and derived datasets.
-- Provenance cards for compact model/report registry metadata.
-- Upstream/downstream impact analysis for change propagation.
-- Projection of the existing CardiTrace recorder directly into the semantic graph, preserving legacy traces.
-- Existing HeartTwin adapter and component handoff APIs remain part of the stack.
+- Run/session records, resource telemetry, policy gates, redaction, replay comparison, and federation.
+- Semantic entity/activity/agent/relation graph shaped for W3C PROV interoperability.
+- Dataset manifests for external, local, and derived scientific datasets.
+- Provenance cards and upstream/downstream impact analysis.
+- Low-friction context-manager/decorator instrumentation.
+- OpenLineage-shaped event export without requiring the OpenLineage SDK.
+- Deterministic pipeline stage locks and transitive downstream invalidation.
+- Local file content-hash verification during audits.
+- Existing HeartTwin adapter and component handoff APIs.
 
-## Usage
+## Quick start
 
 ```python
-from cardi_trace import TraceRecorder, graph_from_recorder, provenance_card
+from cardi_trace import TraceRecorder, activity, record_result
 
 trace = TraceRecorder("./trace", component="example")
-run = trace.start_run("example", "operation", parameters={"seed": 42})
-# register and attach inputs/outputs
-trace.finish_run(run.run_id)
+with activity(trace, "example", "operation", parameters={"seed": 42}) as run:
+    result = {"value": 42}
+    record_result(trace, run.run_id, result)
+```
+
+Semantic projection and a compact provenance card:
+
+```python
+from cardi_trace import graph_from_recorder, provenance_card
 
 graph = graph_from_recorder(trace)
 card = provenance_card(graph, title="Example analysis", run_id=run.run_id)
+```
+
+Pipeline lock state:
+
+```python
+from cardi_trace import Pipeline, Stage, lock_pipeline
+
+pipeline = Pipeline()
+pipeline.add(Stage("prepare", "python prepare.py", outs=("prepared",)))
+pipeline.add(Stage("train", "python train.py", deps=("prepared",), outs=("model",)))
+lock_pipeline(pipeline, path="carditrace.lock.json")
 ```
 
 ## CLI
@@ -40,17 +57,21 @@ carditrace inspect ./trace-demo
 carditrace bundle ./trace-demo/bundle.json
 ```
 
+## Interoperability
+
+CardiTrace's semantic model is deliberately close to W3C PROV concepts. It also provides an OpenLineage-shaped event export so traces can be mapped into systems using run/job/dataset lineage semantics. These exporters do not require external runtime dependencies.
+
 ## Validation
 
-The test suite covers the legacy trace system plus semantic provenance graph construction, deterministic dataset manifests, ledger-to-PROV projection, provenance cards, and impact traversal.
+CI is configured for Python 3.10–3.13 and runs compilation plus the pytest suite. The repository also contains explicit tests for semantic provenance, instrumentation, pipeline locking, lineage export, and audit behavior.
 
 ## Design lineage
 
-CardiTrace incorporates architectural lessons from Flowcept, RI-SE/dataprov, DVC, and scientific data-management systems. The current implementation is independent rather than a source-code fork. See `THIRD_PARTY_NOTICES.md` for attribution and the rules governing future source-level reuse.
+The implementation was informed by public patterns in Flowcept, RI-SE/dataprov, DVC, OpenLineage, and related scientific provenance systems. CardiTrace is not presented as a source-code fork of those projects. Source-level reuse of external code must be handled separately under the applicable upstream license.
 
 ## Limitations
 
-Integrity hashes detect ordinary post-hoc changes but cannot establish trust against an attacker controlling the source, runtime, repository, and verifier. Provenance records computational history; they do not establish scientific validity.
+Integrity hashes and Merkle commitments detect ordinary post-hoc modification but do not create an independent trust anchor against an attacker who controls the original data, runtime, repository, and verifier. Missing external files cannot be content-verified locally. Provenance documents computational history; it does not establish scientific validity or correctness of an analysis.
 
 ## License
 
