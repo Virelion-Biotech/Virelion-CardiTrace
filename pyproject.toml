@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "virelion-cardi-trace"
+version = "0.4.0"
+description = "Biomedical provenance, lineage, reproducibility, audit, federation, telemetry, and traceability for Virelion workflows."
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{name = "Virelion Biotech"}]
+license = {file = "LICENSE"}
+keywords = ["provenance", "W3C PROV", "OpenLineage", "lineage", "reproducibility", "audit", "federation", "telemetry", "biomedical-ai"]
+
+[project.optional-dependencies]
+test = ["pytest>=8"]
+
+[project.scripts]
+carditrace = "cardi_trace.cli:main"
+carditrace-hearttwin = "cardi_trace.hearttwin_adapter:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
