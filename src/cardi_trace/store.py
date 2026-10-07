@@ -21,7 +21,7 @@ def store_mutation(fn):
 
 class ArtifactStore:
     def __init__(self, root: str | Path) -> None:
-        self.root = Path(root)
+        self.root = Path(root).resolve()
         self.root.mkdir(parents=True, exist_ok=True)
 
     def _path(self, digest: str) -> Path:

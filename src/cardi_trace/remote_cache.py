@@ -10,7 +10,7 @@ from .storage import atomic_json
 
 class Cache:
     def __init__(self, root: str | Path):
-        self.root = Path(root)
+        self.root = Path(root).resolve()
         self.root.mkdir(parents=True, exist_ok=True)
 
     def key(self, *, code: str, inputs=(), parameters=None, environment=None) -> str:

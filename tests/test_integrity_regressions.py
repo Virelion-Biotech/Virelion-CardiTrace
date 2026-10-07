@@ -479,3 +479,35 @@ def test_cas_read_only_open_and_bad_paths(tmp_path):
         store.get_bytes("../escape")
     with pytest.raises(ValueError):
         store.get_bytes(digest.upper())
+
+
+def test_relative_storage_roots_survive_working_directory_change(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    trace = TraceRecorder("trace")
+    store = ArtifactStore("store")
+    cache = Cache("cache")
+    digest = store.put_bytes(b"fixed")
+    key = cache.key(code="fixed")
+    cache.put(key, 1)
+    other = tmp_path / "other"
+    other.mkdir()
+    monkeypatch.chdir(other)
+    trace.start_run("model", "fit")
+    assert (tmp_path / "trace" / "events.jsonl").exists()
+    assert store.get_bytes(digest) == b"fixed"
+    assert cache.get(key) == 1
+    assert not (other / "trace").exists()
+
+
+def test_nested_telemetry_uses_parent_trace_and_span(tmp_path):
+    from cardi_trace import spans_from_recorder
+
+    trace = TraceRecorder(tmp_path)
+    parent = trace.start_run("pipeline", "parent")
+    child = trace.start_run("model", "child", parent_run_id=parent.run_id)
+    grandchild = trace.start_run("model", "grandchild", parent_run_id=child.run_id)
+    spans = {s.name: s for s in spans_from_recorder(trace)}
+    assert spans["model.child"].trace_id == spans["pipeline.parent"].trace_id
+    assert spans["model.child"].parent_span_id == spans["pipeline.parent"].span_id
+    assert spans["model.grandchild"].trace_id == spans["pipeline.parent"].trace_id
+    assert spans["model.grandchild"].parent_span_id == spans["model.child"].span_id

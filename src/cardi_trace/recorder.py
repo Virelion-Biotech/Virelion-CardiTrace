@@ -57,7 +57,7 @@ class TraceRecorder:
         redact_metadata=True,
         sensitive_keys=DEFAULT_SENSITIVE_KEYS,
     ):
-        self.root = Path(root)
+        self.root = Path(root).resolve()
         self.root.mkdir(parents=True, exist_ok=True)
         self.actor = actor
         self.component = component

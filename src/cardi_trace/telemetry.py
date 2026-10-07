@@ -31,12 +31,26 @@ class TraceSpan:
 
 def spans_from_recorder(recorder):
     spans = []
+    lookup = {run.run_id: run for run in recorder.runs}
+
+    def trace_identity(run):
+        seen = set()
+        while True:
+            if run.run_id in seen:
+                raise ValueError("Parent run cycle in telemetry")
+            seen.add(run.run_id)
+            if run.metadata.get("trace_id"):
+                return run.metadata["trace_id"]
+            if run.parent_run_id not in lookup:
+                return run.run_id.replace("-", "")[:32].ljust(32, "0")
+            run = lookup[run.parent_run_id]
+
     for run in recorder.runs:
-        trace_id = run.metadata.get(
-            "trace_id", run.run_id.replace("-", "")[:32].ljust(32, "0")
-        )
+        trace_id = trace_identity(run)
         span_id = run.run_id.replace("-", "")[:16].ljust(16, "0")
         parent = run.metadata.get("span_parent_id")
+        if parent is None and run.parent_run_id in lookup:
+            parent = run.parent_run_id.replace("-", "")[:16].ljust(16, "0")
         spans.append(
             TraceSpan(
                 trace_id,

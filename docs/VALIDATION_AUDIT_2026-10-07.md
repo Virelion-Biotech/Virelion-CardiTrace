@@ -27,6 +27,7 @@ The original 32 tests passed. The first targeted regression panel produced 17 fa
 | Federation/replay | Incomplete artifact sets, invalid traces, environment/output changes missed | Check trace validity, exact sets and replay identities |
 | OpenLineage | Repeated delivery duplicated runs; metrics/descriptors lost; START showed future outputs | Idempotent lifecycle import, retained metrics/descriptors and recorded start snapshots |
 | CLI | Missing path could appear valid and create a directory; malformed input raised unstructured exceptions | Fail missing verification without creation; structured errors; explicit recovery and strict-file mode |
+| Storage roots / telemetry | Working-directory changes redirected writes; child runs lost parent span/trace | Absolute storage roots and inherited parent telemetry identities |
 | Packaging | Facet schemas absent from wheel; documentation stale; license text abbreviated | Package facets, include docs/scripts in sdist, update format docs and include complete AGPL text |
 
 ## Validation commands
@@ -43,7 +44,7 @@ python -m build --wheel --sdist
 python scripts/package_smoke.py --installed
 ```
 
-The repaired suite contains 72 tests. CPU-only local execution on Linux/Python 3.12 passed. Regression scenarios include concurrent spawn processes and threads sharing a recorder, interrupted snapshot writes, malformed snapshots, modified journals, rehashed corrupt bundles, strict missing-file checks, descriptor-aware GC, cache corruption, external lifecycle duplication, and staged/untracked code changes. Existing HeartTwin fingerprint fixtures pass. The package smoke harness exercises both command adapters, successful exports and canonical-state tamper rejection. CI runs Python 3.10–3.13 on Ubuntu and Windows and also installs/exercises the built wheel. CI outcomes must be checked for the actual pushed commit; configuration alone is not a pass.
+The repaired suite contains 74 tests. CPU-only local execution on Linux/Python 3.12 passed. Regression scenarios include concurrent spawn processes and threads sharing a recorder, interrupted snapshot writes, malformed snapshots, modified journals, rehashed corrupt bundles, strict missing-file checks, descriptor-aware GC, cache corruption, external lifecycle duplication, and staged/untracked code changes. Existing HeartTwin fingerprint fixtures pass. The package smoke harness exercises both command adapters, successful exports and canonical-state tamper rejection. CI runs Python 3.10–3.13 on Ubuntu and Windows and also installs/exercises the built wheel. CI outcomes must be checked for the actual pushed commit; configuration alone is not a pass.
 
 ## Limits of the evidence
 
