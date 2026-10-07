@@ -63,7 +63,11 @@ CardiTrace's semantic model is deliberately close to W3C PROV concepts. It also 
 
 ## Validation
 
-CI is configured for Python 3.10–3.13 and runs compilation plus the pytest suite. The repository also contains explicit tests for semantic provenance, instrumentation, pipeline locking, lineage export, and audit behavior.
+CI runs Python 3.10–3.13 on Ubuntu and Windows, checks compilation/fatal lint errors, runs the integrity/concurrency/recovery suite, builds distributions, and exercises an installed wheel. The audit and reproducible commands are in [the validation report](docs/VALIDATION_AUDIT_2026-10-07.md).
+
+Writes use a hash-checked journal, cooperative thread/process locking, and atomic snapshots. Verification compares derived state to journal replay. For interrupted snapshot writes, use `carditrace recover ./trace`; `--overwrite` permits replacing malformed snapshots but never skips journal validation. Use `carditrace verify ./trace --strict-files` when every local source file must remain accessible. See [trace format and recovery](docs/trace-format.md).
+
+CAS reads and result caches verify content identities. Legacy unverified result-cache files must be removed and recomputed. OpenLineage imports preserve dataset descriptors while marking their source bytes unverified.
 
 ## Design lineage
 
@@ -75,4 +79,4 @@ Integrity hashes and Merkle commitments detect ordinary post-hoc modification bu
 
 ## License
 
-GNU Affero General Public License v3.0 or later (AGPL-3.0-or-later). See `LICENSE`.
+Copyright (c) 2026 Syed Umer Hannan. GNU Affero General Public License v3.0 or later (AGPL-3.0-or-later). See `LICENSE`.

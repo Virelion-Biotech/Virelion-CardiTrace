@@ -1,6 +1,21 @@
 from pathlib import Path
-from cardi_trace import ArtifactKind, ArtifactRef, ProvenanceGraph, dataset_manifest, graph_from_recorder, impact_report, provenance_card
-from cardi_trace import TraceRecorder, sign_payload, signed_copy, verify_signature, workflow_card
+from cardi_trace import (
+    ArtifactKind,
+    ArtifactRef,
+    ProvenanceGraph,
+    dataset_manifest,
+    graph_from_recorder,
+    impact_report,
+    provenance_card,
+)
+from cardi_trace import (
+    TraceRecorder,
+    sign_payload,
+    signed_copy,
+    verify_signature,
+    workflow_card,
+)
+
 
 def test_provenance_graph_round_trip_semantics():
     g = ProvenanceGraph()
@@ -17,12 +32,16 @@ def test_provenance_graph_round_trip_semantics():
     assert "wasDerivedFrom" in g.to_prov_json()
     assert len(g.digest) == 64
 
+
 def test_dataset_manifest_is_deterministic():
-    artifact = ArtifactRef.create("a" * 64, kind=ArtifactKind.DATASET, name="matrix.h5ad")
+    artifact = ArtifactRef.create(
+        "a" * 64, kind=ArtifactKind.DATASET, name="matrix.h5ad"
+    )
     a = dataset_manifest("GEO", [artifact], version="GSE217494", modality="scRNA-seq")
     b = dataset_manifest("GEO", [artifact], version="GSE217494", modality="scRNA-seq")
     assert a["dataset_id"] == b["dataset_id"]
     assert a["manifest_digest"] == b["manifest_digest"]
+
 
 def test_existing_recorder_projects_into_semantic_graph(tmp_path: Path):
     recorder = TraceRecorder(tmp_path, actor="test", component="unit")
@@ -37,6 +56,7 @@ def test_existing_recorder_projects_into_semantic_graph(tmp_path: Path):
     assert card["graph_digest"] == graph.digest
     assert impact_report(graph, f"artifact:{artifact.artifact_id}")["entity_id"]
     assert workflow_card(graph, title="unit").startswith("# unit")
+
 
 def test_hmac_signing_is_verifiable():
     payload = {"trace_id": "abc", "digest": "123"}

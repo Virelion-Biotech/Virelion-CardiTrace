@@ -1,8 +1,10 @@
 """Optional shared-secret authentication for federated CardiTrace envelopes."""
+
 from __future__ import annotations
 import hashlib, hmac
 from typing import Any
 from .hashing import canonical_json
+
 
 def _signed_body(payload: dict[str, Any]) -> dict[str, Any]:
     body = dict(payload)
@@ -10,14 +12,30 @@ def _signed_body(payload: dict[str, Any]) -> dict[str, Any]:
     body.pop("signature_algorithm", None)
     return body
 
+
 def sign_payload(payload: dict[str, Any], secret: bytes) -> str:
     """Return an HMAC-SHA256 MAC over the unsigned payload."""
-    if not secret: raise ValueError("secret must not be empty")
-    return hmac.new(secret, canonical_json(_signed_body(payload)), hashlib.sha256).hexdigest()
+    if not secret:
+        raise ValueError("secret must not be empty")
+    return hmac.new(
+        secret, canonical_json(_signed_body(payload)), hashlib.sha256
+    ).hexdigest()
+
 
 def verify_signature(payload: dict[str, Any], signature: str, secret: bytes) -> bool:
-    if not secret or not signature or payload.get("signature_algorithm") not in (None, "hmac-sha256"): return False
+    if not isinstance(signature, str) or not signature.isascii():
+        return False
+    if (
+        not secret
+        or not signature
+        or payload.get("signature_algorithm") not in (None, "hmac-sha256")
+    ):
+        return False
     return hmac.compare_digest(sign_payload(payload, secret), signature)
 
+
 def signed_copy(payload: dict[str, Any], secret: bytes) -> dict[str, Any]:
-    body = dict(payload); body["signature_algorithm"] = "hmac-sha256"; body["signature"] = sign_payload(body, secret); return body
+    body = dict(payload)
+    body["signature_algorithm"] = "hmac-sha256"
+    body["signature"] = sign_payload(body, secret)
+    return body

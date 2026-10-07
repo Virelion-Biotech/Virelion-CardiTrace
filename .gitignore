@@ -10,3 +10,4 @@ dist/
 build/
 .trace/
 trace-demo/
+.ruff_cache/

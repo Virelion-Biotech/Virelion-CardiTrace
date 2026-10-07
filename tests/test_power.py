@@ -2,15 +2,29 @@ from pathlib import Path
 import json
 
 from cardi_trace import (
-    TraceRecorder, TracePolicy, TracePolicyError, TraceQuery,
-    compare_traces, load_bundle, create_envelope, verify_envelope,
-    recorder_merkle_root, redact, plan_replay, validate_replay,
+    TraceRecorder,
+    TracePolicy,
+    TracePolicyError,
+    TraceQuery,
+    compare_traces,
+    load_bundle,
+    create_envelope,
+    verify_envelope,
+    recorder_merkle_root,
+    redact,
+    plan_replay,
+    validate_replay,
 )
 
 
 def build_trace(root: Path, value=1):
     r = TraceRecorder(root, actor="test", component="power")
-    run = r.start_run("CardiEval", "evaluate", parameters={"seed": 42, "value": value}, seeds={"numpy": 42})
+    run = r.start_run(
+        "CardiEval",
+        "evaluate",
+        parameters={"seed": 42, "value": value},
+        seeds={"numpy": 42},
+    )
     inp = r.register_payload({"dataset": "demo", "v": value}, role="input")
     r.attach_input(run.run_id, inp)
     out = r.register_payload({"score": 0.9 + value / 100}, role="output")

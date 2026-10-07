@@ -1,4 +1,15 @@
-from cardi_trace import ArtifactKind, Pipeline, Stage, TraceRecorder, activity, changed_stages, export_openlineage, lock_pipeline, record_result
+from cardi_trace import (
+    ArtifactKind,
+    Pipeline,
+    Stage,
+    TraceRecorder,
+    activity,
+    changed_stages,
+    export_openlineage,
+    lock_pipeline,
+    record_result,
+)
+
 
 def test_activity_failure_and_output(tmp_path):
     trace = TraceRecorder(tmp_path / "trace", actor="test", component="test")
@@ -6,6 +17,7 @@ def test_activity_failure_and_output(tmp_path):
         record_result(trace, run.run_id, {"answer": 42})
     assert trace.runs[0].status == "succeeded"
     assert len(trace.runs[0].output_artifacts) == 1
+
 
 def test_pipeline_lock_and_cycle_detection(tmp_path):
     p = Pipeline()
@@ -23,6 +35,7 @@ def test_pipeline_lock_and_cycle_detection(tmp_path):
     except ValueError as exc:
         assert "cycle" in str(exc).lower()
 
+
 def test_openlineage_export(tmp_path):
     trace = TraceRecorder(tmp_path / "trace")
     run = trace.start_run("unit", "op")
@@ -34,7 +47,20 @@ def test_openlineage_export(tmp_path):
     assert '"eventType":"COMPLETE"' in text
     assert run.run_id in text
 
+
 def test_changed_stages_propagates_downstream():
-    old = {"stages": {"a": {"digest": "1", "stage_deps": []}, "b": {"digest": "2", "stage_deps": ["a"]}, "c": {"digest": "3", "stage_deps": ["b"]}}}
-    new = {"stages": {"a": {"digest": "9", "stage_deps": []}, "b": {"digest": "2", "stage_deps": ["a"]}, "c": {"digest": "3", "stage_deps": ["b"]}}}
+    old = {
+        "stages": {
+            "a": {"digest": "1", "stage_deps": []},
+            "b": {"digest": "2", "stage_deps": ["a"]},
+            "c": {"digest": "3", "stage_deps": ["b"]},
+        }
+    }
+    new = {
+        "stages": {
+            "a": {"digest": "9", "stage_deps": []},
+            "b": {"digest": "2", "stage_deps": ["a"]},
+            "c": {"digest": "3", "stage_deps": ["b"]},
+        }
+    }
     assert changed_stages(old, new) == ["a", "b", "c"]

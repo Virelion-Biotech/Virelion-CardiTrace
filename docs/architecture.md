@@ -1,4 +1,4 @@
-# CardiTrace architecture v0.2
+# CardiTrace architecture v0.4.1
 
 CardiTrace is a four-plane provenance system.
 
@@ -12,7 +12,7 @@ The recorder maintains an append-only event ledger, logical run registry, artifa
 
 ## Integrity plane
 
-Verification covers event chain correctness, event digests, artifact references, terminal-run completeness, lineage acyclicity, execution-fingerprint presence, and a Merkle root over the event chain. Bundle digests protect the complete exported evidence object. The Merkle root can be anchored outside CardiTrace.
+Verification covers event chain correctness, event digests, artifact references, terminal-run completeness, lineage acyclicity, execution-fingerprint consistency and journal/snapshot agreement, and a Merkle root over the event chain. Bundle digests protect the complete exported evidence object. The Merkle root can be anchored outside CardiTrace.
 
 ## Interoperability plane
 

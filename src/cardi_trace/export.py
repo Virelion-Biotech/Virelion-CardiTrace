@@ -1,4 +1,5 @@
 """Portable trace bundle export/import with schema and commitment metadata."""
+
 from __future__ import annotations
 
 import json
@@ -11,6 +12,8 @@ from .merkle import recorder_merkle_root
 
 def build_bundle(recorder) -> dict:
     audit = verify_recorder(recorder)
+    if not audit.valid:
+        raise ValueError("Cannot export an invalid trace")
     payload = {
         "schema_version": SCHEMA_VERSION,
         "events": [e.to_dict() for e in recorder.events],
@@ -18,7 +21,10 @@ def build_bundle(recorder) -> dict:
         "artifacts": [a.to_dict() for a in recorder.artifacts],
         "lineage": [e.to_dict() for e in getattr(recorder, "lineage", ())],
         "audit": audit.to_dict(),
-        "commitment": {"algorithm": "merkle-sha256-v1", "root": recorder_merkle_root(recorder)},
+        "commitment": {
+            "algorithm": "merkle-sha256-v1",
+            "root": recorder_merkle_root(recorder),
+        },
     }
     payload["bundle_digest"] = sha256_payload(payload)
     return payload
@@ -42,6 +48,23 @@ def load_bundle(path: str | Path) -> dict:
     body.pop("bundle_digest", None)
     if claimed != sha256_payload(body):
         raise ValueError("Bundle digest mismatch")
+    from types import SimpleNamespace
+    from .models import TraceEvent, RunRecord, ArtifactRef, LineageEdge
+
+    try:
+        view = SimpleNamespace(
+            events=tuple(TraceEvent(**e) for e in payload["events"]),
+            runs=tuple(RunRecord(**r) for r in payload["runs"]),
+            artifacts=tuple(ArtifactRef(**a) for a in payload["artifacts"]),
+            lineage=tuple(LineageEdge(**e) for e in payload.get("lineage", [])),
+        )
+        report = verify_recorder(view, verify_local_files=False)
+        if not report.valid:
+            raise ValueError("Invalid bundle journal or snapshots")
+        if payload.get("commitment", {}).get("root") != report.commitment:
+            raise ValueError("Bundle Merkle commitment mismatch")
+    except (TypeError, KeyError, AttributeError) as exc:
+        raise ValueError("Malformed trace bundle") from exc
     return payload
 
 
@@ -50,5 +73,8 @@ def export_jsonl(recorder, path: str | Path) -> Path:
     target.parent.mkdir(parents=True, exist_ok=True)
     with target.open("w", encoding="utf-8") as handle:
         for event in recorder.events:
-            handle.write(json.dumps(event.to_dict(), sort_keys=True, separators=(",", ":")) + "\n")
+            handle.write(
+                json.dumps(event.to_dict(), sort_keys=True, separators=(",", ":"))
+                + "\n"
+            )
     return target

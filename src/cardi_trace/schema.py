@@ -1,4 +1,5 @@
 """Versioned schema utilities for trace interchange."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -13,6 +14,8 @@ def envelope(payload: dict[str, Any]) -> dict[str, Any]:
 
 def validate_envelope(payload: dict[str, Any]) -> tuple[str, ...]:
     issues: list[str] = []
+    if not isinstance(payload, dict):
+        return ("bundle_must_be_object",)
     version = str(payload.get("schema_version", ""))
     if not version:
         issues.append("missing_schema_version")
@@ -26,6 +29,10 @@ def validate_envelope(payload: dict[str, Any]) -> tuple[str, ...]:
     for key in ("events", "runs", "artifacts"):
         if key not in payload:
             issues.append(f"missing:{key}")
+        elif not isinstance(payload[key], list):
+            issues.append(f"invalid:{key}")
+    if "lineage" in payload and not isinstance(payload["lineage"], list):
+        issues.append("invalid:lineage")
     return tuple(issues)
 
 

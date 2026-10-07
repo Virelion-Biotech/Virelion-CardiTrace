@@ -1,4 +1,5 @@
 """Merkle commitments over trace events for efficient external anchoring."""
+
 from __future__ import annotations
 
 from .hashing import sha256_payload

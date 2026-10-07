@@ -1,4 +1,5 @@
 """HeartTwin local-command adapter for CardiTrace provenance recording."""
+
 from __future__ import annotations
 
 import hashlib
@@ -39,7 +40,9 @@ def _verify_canonical_state(payload: dict[str, Any]) -> str | None:
         or len(expected) != 64
         or any(ch not in string.hexdigits for ch in expected)
     ):
-        raise ValueError("canonical_state_fingerprint must be a 64-character SHA-256 hex string")
+        raise ValueError(
+            "canonical_state_fingerprint must be a 64-character SHA-256 hex string"
+        )
     expected = expected.lower()
 
     workflow_state = payload.get("workflow_state")
@@ -69,7 +72,11 @@ def _verify_canonical_state(payload: dict[str, Any]) -> str | None:
 
 
 def main() -> int:
-    raw = sys.stdin.read() if os.environ.get("HEARTTWIN_PAYLOAD_STDIN") == "1" else os.environ.get("HEARTTWIN_PAYLOAD")
+    raw = (
+        sys.stdin.read()
+        if os.environ.get("HEARTTWIN_PAYLOAD_STDIN") == "1"
+        else os.environ.get("HEARTTWIN_PAYLOAD")
+    )
     if not raw:
         print("HEARTTWIN_PAYLOAD environment variable not set", file=sys.stderr)
         return 1
@@ -92,7 +99,9 @@ def main() -> int:
                 "canonical_state_verified": verified_state_fingerprint is not None,
             },
         )
-        input_artifact = recorder.register_payload(payload, role="input", name=f"hearttwin:{entity_id}")
+        input_artifact = recorder.register_payload(
+            payload, role="input", name=f"hearttwin:{entity_id}"
+        )
         recorder.attach_input(run.run_id, input_artifact)
         recorder.finish_run(
             run.run_id,
@@ -104,15 +113,22 @@ def main() -> int:
             },
         )
         finished = next(item for item in recorder.runs if item.run_id == run.run_id)
-        print(json.dumps({
-            "run_id": finished.run_id,
-            "status": finished.status,
-            "execution_fingerprint": finished.metadata.get("execution_fingerprint"),
-            "input_artifact_id": input_artifact.artifact_id,
-            "trace_root": str(root.resolve()),
-            "canonical_state_fingerprint": verified_state_fingerprint,
-            "canonical_state_verified": verified_state_fingerprint is not None,
-        }, sort_keys=True))
+        print(
+            json.dumps(
+                {
+                    "run_id": finished.run_id,
+                    "status": finished.status,
+                    "execution_fingerprint": finished.metadata.get(
+                        "execution_fingerprint"
+                    ),
+                    "input_artifact_id": input_artifact.artifact_id,
+                    "trace_root": str(root.resolve()),
+                    "canonical_state_fingerprint": verified_state_fingerprint,
+                    "canonical_state_verified": verified_state_fingerprint is not None,
+                },
+                sort_keys=True,
+            )
+        )
         return 0
     except Exception as exc:  # noqa: BLE001 - translate to adapter contract
         print(str(exc), file=sys.stderr)
