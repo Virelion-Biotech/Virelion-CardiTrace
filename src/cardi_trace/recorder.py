@@ -1,14 +1,19 @@
 """Append-only, content-addressed provenance recorder."""
 
 from __future__ import annotations
-import json, platform, sys, socket, time, math, os
+import json
+import platform
+import sys
+import socket
+import time
+import math
+import os
 from copy import deepcopy
 from functools import wraps
 from .storage import ledger_lock, atomic_json
 from .journal import refresh_fingerprint
 from dataclasses import replace
 from pathlib import Path
-from typing import Any, Iterable
 from .fingerprint import execution_fingerprint
 from .hashing import digest_event, sha256_file, sha256_payload
 from .lineage import LineageGraph
@@ -467,7 +472,15 @@ class TraceRecorder:
         return export_bundle(self, path)
 
 
-def default_environment(*, packages=()):
+def default_environment(
+    *,
+    packages=(),
+    container_digest=None,
+    lockfile=None,
+    random_seeds=None,
+    deterministic_settings=None,
+    hardware=None,
+):
     versions = {}
     from importlib.metadata import version, PackageNotFoundError
 
@@ -476,7 +489,48 @@ def default_environment(*, packages=()):
             versions[name] = version(name)
         except PackageNotFoundError:
             versions[name] = None
+    declared = {}
+    if container_digest is not None:
+        import re
+
+        if not isinstance(container_digest, str) or not re.fullmatch(
+            r"sha256:[0-9a-f]{64}", container_digest
+        ):
+            raise ValueError(
+                "Container identity must be a sha256 digest, not a mutable tag"
+            )
+        declared["container_digest"] = container_digest
+    if lockfile is not None:
+        from .hashing import sha256_file
+
+        declared["lockfile_sha256"] = sha256_file(lockfile)
+    if random_seeds is not None:
+        if not isinstance(random_seeds, dict) or any(
+            not isinstance(k, str) or not k.strip() or type(v) is not int or v < 0
+            for k, v in random_seeds.items()
+        ):
+            raise ValueError("Random seeds require named nonnegative integers")
+        declared["random_seeds"] = dict(random_seeds)
+    for key, value in [
+        ("deterministic_settings", deterministic_settings),
+        ("hardware", hardware),
+    ]:
+        if value is not None:
+            if not isinstance(value, dict):
+                raise ValueError(f"{key} must be an explicit mapping")
+            declared[key] = deepcopy(value)
+    # Record unknowns explicitly. Declared settings are not proof they were applied.
+    for key in [
+        "container_digest",
+        "lockfile_sha256",
+        "random_seeds",
+        "deterministic_settings",
+        "hardware",
+    ]:
+        declared.setdefault(key, None)
     return {
+        **declared,
+        "runtime_declarations_verified": False,
         "python": sys.version.split()[0],
         "platform": platform.platform(),
         "hostname": socket.gethostname(),
