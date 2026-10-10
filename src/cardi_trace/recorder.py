@@ -481,6 +481,8 @@ def default_environment(
     deterministic_settings=None,
     hardware=None,
 ):
+    from .runtime import capture_runtime
+
     versions = {}
     from importlib.metadata import version, PackageNotFoundError
 
@@ -530,6 +532,7 @@ def default_environment(
         declared.setdefault(key, None)
     return {
         **declared,
+        "observed_runtime": capture_runtime(),
         "runtime_declarations_verified": False,
         "python": sys.version.split()[0],
         "platform": platform.platform(),

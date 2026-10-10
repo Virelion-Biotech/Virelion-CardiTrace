@@ -69,6 +69,22 @@ Writes use a hash-checked journal, cooperative thread/process locking, and atomi
 
 CAS reads and result caches verify content identities. Legacy unverified result-cache files must be removed and recomputed. OpenLineage imports preserve dataset descriptors while marking their source bytes unverified.
 
+Default run environments include `observed_runtime`: host architecture/CPU count,
+installed numerical package versions, selected computation environment variables,
+and build/settings observations for numerical libraries already loaded by the caller.
+NumPy/SciPy build configuration and PyTorch thread/determinism/TF32 settings are
+captured when their APIs support it. PyTorch GPU properties are read only if CUDA
+was already initialized; otherwise devices remain unknown. Capture never imports
+numerical libraries, initializes CUDA, changes settings, or seeds random generators.
+Unsupported probes have an explicit unavailable status. These observations contribute
+to the execution fingerprint and survive ledger replay and export.
+
+Caller-supplied environments remain caller-controlled. Container digest, seed,
+lockfile, hardware and determinism declarations remain separate from observations;
+`runtime_declarations_verified` stays false. Installed versions and a run-start
+snapshot do not attest which devices/backends were used throughout an execution.
+See [runtime capture scope and remaining gaps](docs/RUNTIME_CAPTURE_2026-10-10.md).
+
 ## Design lineage
 
 The implementation was informed by public patterns in Flowcept, RI-SE/dataprov, DVC, OpenLineage, and related scientific provenance systems. CardiTrace is not presented as a source-code fork of those projects. Source-level reuse of external code must be handled separately under the applicable upstream license.

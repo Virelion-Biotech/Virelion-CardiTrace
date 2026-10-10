@@ -14,7 +14,7 @@ license-files = ["LICENSE"]
 keywords = ["provenance", "W3C PROV", "OpenLineage", "lineage", "reproducibility", "audit", "federation", "telemetry", "biomedical-ai"]
 
 [project.optional-dependencies]
-test = ["pytest>=8"]
+test = ["pytest>=8", "numpy>=1.26"]
 
 [project.scripts]
 carditrace = "cardi_trace.cli:main"
