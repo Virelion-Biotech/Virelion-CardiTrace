@@ -2,6 +2,21 @@
 
 CardiTrace records computational provenance, artifact identity, lineage, execution context, integrity metadata, and reproducibility state for Virelion workflows.
 
+
+<!-- VALIDATION_PRODUCT_STATUS:BEGIN -->
+## Validation and product completion status
+
+**Reviewed 2026-10-14; implementation base `1f378436833a`.** **Status: Integrity/recovery/runtime-observation checks; execution attestation incomplete.** This is an evidence-backed scope assessment, not a percentage-complete estimate or a declaration that the product is finished.
+
+| Area | Current evidence / remaining gate |
+|---|---|
+| Software / operational checks | Automated test sources and CI definitions are present; this documentation audit does not report a new algorithm/data-validation run. |
+| Scientific or domain evidence | Hash chains, journal recovery and observed-runtime capture have scoped software evidence. Runtime declarations remain unverified; a run-start snapshot does not attest every device/backend used during execution. |
+| Remaining for the declared product scope | Verify container/lockfile/seed/device/backend declarations against observed execution where supported; complete signing/key and artifact-retention policies for deployment; test cross-process/federated recovery and replay at intended scale; keep integrity separate from scientific truth. |
+
+Evidence and limits: [repository report](docs/RUNTIME_CAPTURE_2026-10-10.md). The [organization status index](https://github.com/Virelion-Biotech/Virelion-HeartTwin/blob/main/docs/STACK_VALIDATION_STATUS.md) separates software, numerical, data-readiness and empirical qualification. Code/schema execution or a completed download is not a substitute for endpoint-specific validation.
+<!-- VALIDATION_PRODUCT_STATUS:END -->
+
 ## Architecture
 
 - SHA-256 identities for payloads, files, models, datasets, reports, and configurations.
