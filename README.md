@@ -110,4 +110,4 @@ Integrity hashes and Merkle commitments detect ordinary post-hoc modification bu
 
 ## License
 
-Copyright (c) 2026 Syed Umer Hannan. GNU Affero General Public License v3.0 or later (AGPL-3.0-or-later). See `LICENSE`.
+Copyright (c) 2026 Virelion Biotech. GNU Affero General Public License v3.0 or later (AGPL-3.0-or-later). See `LICENSE`.
