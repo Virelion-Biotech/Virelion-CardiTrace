@@ -111,3 +111,10 @@ Integrity hashes and Merkle commitments detect ordinary post-hoc modification bu
 ## License
 
 Copyright (c) 2026 Virelion Biotech. GNU Affero General Public License v3.0 or later (AGPL-3.0-or-later). See `LICENSE`.
+
+
+## Therapeutic claim-level provenance
+
+Claim-level source provenance and derived-artifact lineage are specified in [the therapeutic provenance contract](docs/THERAPEUTIC_CLAIM_PROVENANCE.md). The typed record preserves source class (paper, registry, regulator, company, conference, etc.), source version/hash, exact claim locator, extraction actor, verification state, analysis population, endpoint, denominator, follow-up, subgroup/prespecification, multiplicity, and contradiction/supersession links. Derived benchmark/simulation artifacts retain source record IDs, component/schema versions, transformation-code hash, parameters and seed.
+
+Integrity is not scientific truth: hashes establish byte identity only relative to a trusted digest, and a company-reported claim remains company-reported after its source is checked.
