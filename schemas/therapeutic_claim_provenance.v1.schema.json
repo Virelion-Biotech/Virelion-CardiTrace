@@ -1,0 +1,33 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "$id":"https://virelionbiotech.org/schemas/therapeutic_claim_provenance.v1.schema.json",
+  "title":"CardiTrace therapeutic claim provenance",
+  "type":"object",
+  "required":["canonical_source_url","source_identifier","retrieval_timestamp","source_type","source_version","source_sha256","claim_text","claim_location","extraction_actor","verification_status","analysis_population","endpoint","denominator","follow_up","subgroup","subgroup_prespecified","multiplicity_status","claim_id","record_sha256"],
+  "properties":{
+    "canonical_source_url":{"type":"string","format":"uri"},
+    "source_identifier":{"type":"string","minLength":1},
+    "publication_date":{"type":["string","null"]},
+    "retrieval_timestamp":{"type":"string","minLength":1},
+    "source_type":{"enum":["peer_reviewed","clinical_registry","regulator","company_release","conference_abstract","preprint","guideline","other"]},
+    "source_version":{"type":"string","minLength":1},
+    "source_sha256":{"type":"string","pattern":"^[a-fA-F0-9]{64}$"},
+    "claim_text":{"type":"string","minLength":1},
+    "claim_location":{"type":"string","minLength":1},
+    "extraction_actor":{"type":"string","minLength":1},
+    "verification_status":{"enum":["unverified","source_checked","independently_verified","superseded","contradicted"]},
+    "analysis_population":{"type":"string"},
+    "endpoint":{"type":"string"},
+    "denominator":{"type":"object"},
+    "follow_up":{"type":"string"},
+    "subgroup":{"type":"string"},
+    "subgroup_prespecified":{"type":"string"},
+    "multiplicity_status":{"type":"string"},
+    "supersedes":{"type":"array","items":{"type":"string"}},
+    "contradicts":{"type":"array","items":{"type":"string"}},
+    "metadata":{"type":"object"},
+    "claim_id":{"type":"string","pattern":"^claim:"},
+    "record_sha256":{"type":"string","pattern":"^[a-fA-F0-9]{64}$"}
+  },
+  "additionalProperties":false
+}
