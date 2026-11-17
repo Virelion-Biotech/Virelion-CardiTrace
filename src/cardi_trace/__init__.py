@@ -74,6 +74,8 @@ from .adapters import (
     ingest_artifact_manifest,
 )
 from .column_lineage import validate_mapping, add_column_lineage, reverse_column_lineage
+from .therapeutic_provenance import TherapeuticClaimProvenance, DerivedArtifactProvenance, verify_claim_record
+from .therapeutic_integration import trace_therapeutic_claim, trace_derived_therapeutic_artifact
 
 __all__ = [
     "__version__",
@@ -175,4 +177,9 @@ __all__ = [
     "validate_mapping",
     "add_column_lineage",
     "reverse_column_lineage",
+    "TherapeuticClaimProvenance",
+    "DerivedArtifactProvenance",
+    "verify_claim_record",
+    "trace_therapeutic_claim",
+    "trace_derived_therapeutic_artifact",
 ]
